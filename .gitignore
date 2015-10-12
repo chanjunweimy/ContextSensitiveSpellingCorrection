@@ -1,0 +1,6 @@
+*.answer
+*.test
+*.train
+*.pdf
+*.model
+*.actual
