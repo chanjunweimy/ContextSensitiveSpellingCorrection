@@ -475,11 +475,16 @@ public class sctrain {
 	}
 
 	public static void main(String[] args) {
+        long startTime = System.currentTimeMillis();
 		sctrain train = initSctrain(args);
 		boolean isSuccess = train.startTraining();
 		
 		if (!isSuccess) {
 			System.exit(-1);
 		}
+        
+        long endTime   = System.currentTimeMillis();
+        long totalTime = endTime - startTime;
+        System.out.println("total time: " + totalTime);
 	}
 }
