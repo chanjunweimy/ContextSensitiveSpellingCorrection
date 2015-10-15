@@ -18,33 +18,17 @@ public class sctrain {
 
 
 	//reference: https://javaextreme.wordpress.com/category/java-j2se/java-string/remove-stop-words-from-a-string/
-	private static final String[] STOP_WORDS = {
-		"without", "see", "unless", "due", "also", "must", "might", "like", "will", "may", 
-		"can", "much", "every", "the", "in", "other", "this", "the", "many", "any", "an", "or", 
-		"for", "in", "an", "an ", "is", "a", "about", "above", "after", "again", "against", "all", 
-		"am", "an", "and", "any", "are", "\'t", "as", "at", "be", "because", "been", "before",
-		 "being", "below", "between", "both", "but", "by", "cannot", "could",
-		"did", "do", "does", "doing", "down", "during", "each", "few", "for", "from", "further", 
-		"had", "has", "have", "having",
-		"he", "\'d", "\'ll", "\'s", "her", "here", "hers", "herself", "him", "himself", "his", 
-		"how", "i", "\'m", "\'ve", "if", "in", "into", "is",
-		"it", "its", "itself", "let", "me", "more", "most", "n\'t", "my", "myself", "no", 
-		"nor", "not", "of", "off", "on", "once", "only", "ought", "our", "ours", "ourselves",
-		"out", "over", "own", "same", "she", "should", "so", "some", "such", "than",
-		"that", "their", "theirs", "them", "themselves", "then", "there", "these", "they", "\'re",
-		"this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "we", 
-		"were", "what", "when", "where", "which", "while", "who", "whom",
-		"why", "with", "would", "you", "your", "yours", "yourself", "yourselves",
-	};
+	private static String[] STOP_WORDS = null;
+	private static final String STOP_WORDS_FILE = "stopwd.txt";
 
 	private static final String REGEX_PUNCTUATION = "\\p{Punct}";
 
 	private static final String CONFUSION_START = ">>";
 	private static final String CONFUSION_END = "<<";
-	private static final int COLLOCATION_LENGTH = 4;
+	private static final int COLLOCATION_LENGTH = 3;
 
 	private static final double LEARNING_RATE = 0.02;
-	private static final double GRADIENT_TRESHOLD = 0.1;
+	private static final double GRADIENT_TRESHOLD = 0.01;
 	private static final double INITIAL_WEIGHT = 0.01;
 
 	private String _word1 = null;
@@ -61,6 +45,7 @@ public class sctrain {
 	private HashMap <String, Integer> _collocationsFeature = null;
 
 	public sctrain(String word1, String word2, String trainFile, String modelFile) {
+		readStopWordsFile(STOP_WORDS_FILE);
 		setWord1(word1);
 		setWord2(word2);
 		setTrainFile(trainFile);
@@ -68,6 +53,30 @@ public class sctrain {
 		_datasets = new Vector< Vector<String> >();
 		_surroundingWordsFeature = new HashMap <String, Integer>();
 		_collocationsFeature = new HashMap <String, Integer>();
+	}
+
+	private boolean readStopWordsFile(String trainFile) {
+		try {
+			File file = new File(trainFile);
+		    BufferedReader br = new BufferedReader(new FileReader(file));
+		    Vector <String> stopWords = new Vector<String>();
+		    for(String line; (line = br.readLine()) != null; ) {
+		        // process the line.
+		        line = line.trim().toLowerCase();
+		        stopWords.add(line);
+		    }
+		    br.close();
+
+		    STOP_WORDS = new String[stopWords.size()];
+		    for (int i = 0; i < stopWords.size(); i++) {
+		    	STOP_WORDS[i] = stopWords.get(i);
+		    }
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+
+		return true;
 	}
 
 	private void setWord1(String word1) {
@@ -92,11 +101,15 @@ public class sctrain {
 		    BufferedReader br = new BufferedReader(new FileReader(file));
 		    for(String line; (line = br.readLine()) != null; ) {
 		        // process the line.
+		        line = line.replaceAll("\\s", " ");
 		        String[] lineTokens = line.split(" ");
+		        Vector<String> vector = new Vector<String>();
                 for (int i = 0; i < lineTokens.length; i++) {
                     lineTokens[i] = lineTokens[i].toLowerCase().trim();
+                    if (!lineTokens[i].isEmpty()) {
+                    	vector.add(lineTokens[i]);	
+                    }
                 }
-		        Vector<String> vector = new Vector<String>(Arrays.asList(lineTokens));
 		        _datasets.add(vector);
 		    }
 		    br.close();
@@ -108,14 +121,14 @@ public class sctrain {
 	}
 
 	private void initializeWeightVector(int numOfFeature) {
-		_weightVectors = new double[numOfFeature + 1];
+		_weightVectors = new double[numOfFeature];
 		Arrays.fill(_weightVectors, INITIAL_WEIGHT);
 	}
 
 	private void initializeFeatureVector(int numOfDataSets, int numOfFeature) {
-		_featureVectors = new int[numOfDataSets][numOfFeature + 1];
+		_featureVectors = new int[numOfDataSets][numOfFeature];
 		for (int i = 0; i < numOfDataSets; i++) {
-            for (int j = 0; j < numOfFeature + 1; j++) {
+            for (int j = 0; j < numOfFeature; j++) {
                 _featureVectors[i][j] = 0;
             }
         }
@@ -130,11 +143,12 @@ public class sctrain {
 		int index = 1;
 		index = retrieveSurroundingWordsFeature(index);
 		index = retrieveCollocationsFeature(index);
+
 		boolean isSuccess = index >= 0;
 		if (isSuccess) {            
 			initializeWeightVector(index);
 			initializeFeatureVector(_datasets.size(), index);
-			initializeOutcomeVector(index);
+			initializeOutcomeVector(_datasets.size());
 		} 
 		return isSuccess;
 	}
@@ -164,6 +178,7 @@ public class sctrain {
 				} else if (Pattern.matches(REGEX_PUNCTUATION, word)) {
 					continue;
 				} else if (CONFUSION_START.equals(word)) {
+					i += 2;
 					continue;
 				} else if (CONFUSION_END.equals(word)) {
 					continue;
@@ -204,29 +219,31 @@ public class sctrain {
 			}
 
             StringBuilder sb = new StringBuilder();
+            sb.insert(0, CONFUSION_START);
 			for (int i = confussionWordIndex - 1; 
                  i >= Math.max(confussionWordIndex - 1 - COLLOCATION_LENGTH, 1); i--) {
 				String word = dataset.get(i).trim();
+				sb.insert(0, " ");
                 sb.insert(0, word);
 				String collocationWord = sb.toString();
 				if (!_collocationsFeature.containsKey(collocationWord)) {
 					_collocationsFeature.put(collocationWord, index);
 					index ++;
 				}
-				sb.insert(0, " ");
 			}
 
 			StringBuffer collacationWordBuffer = new StringBuffer();
+			collacationWordBuffer.append(CONFUSION_END);
 			for (int i = confussionWordIndex + 3; 
                  i <= Math.min(confussionWordIndex + 3 + COLLOCATION_LENGTH, dataset.size() - 1); i++) {
 				String word = dataset.get(i).trim();
+				collacationWordBuffer.append(" ");
 				collacationWordBuffer.append(word);
 				String collocationWord = collacationWordBuffer.toString();
 				if (!_collocationsFeature.containsKey(collocationWord)) {
 					_collocationsFeature.put(collocationWord, index);
 					index ++;
 				}
-				collacationWordBuffer.append(" ");
 			}
 		}
 		return index;
@@ -269,29 +286,33 @@ public class sctrain {
             }
             
             StringBuilder sb = new StringBuilder();
+            sb.insert(0, CONFUSION_START);
 			for (int j = confuseIndexStart - 1; 
                  j >= Math.max(confuseIndexStart - 1 - COLLOCATION_LENGTH, 1); j--) {
 				String word = dataset.get(j).trim();
+				sb.insert(0, " ");
 				sb.insert(0, word);
 				String collocationWord = sb.toString();
 				if (_collocationsFeature.containsKey(collocationWord)) {
 					Integer index = _collocationsFeature.get(collocationWord);
 					_featureVectors[i][index.intValue()] = 1;
 				}
-				sb.insert(0, " ");
 			}
 
             StringBuffer collacationWordBuffer = new StringBuffer();
+            collacationWordBuffer.append(CONFUSION_END);
 			for (int j = confuseIndexEnd + 1; 
                  j <= Math.min(confuseIndexEnd + 1 + COLLOCATION_LENGTH, dataset.size() - 1); j++) {
 				String word = dataset.get(j).trim();
+				collacationWordBuffer.append(" ");
 				collacationWordBuffer.append(word);
 				String collocationWord = collacationWordBuffer.toString();
 				if (_collocationsFeature.containsKey(collocationWord)) {
 					Integer index = _collocationsFeature.get(collocationWord);
 					_featureVectors[i][index.intValue()] = 1;
+				} else {
+					System.out.println(collocationWord);
 				}
-				collacationWordBuffer.append(" ");
 			}
 
 		}
@@ -420,27 +441,25 @@ public class sctrain {
 		FileWriter fw;
 		try {
 			fw = new FileWriter(filename);
-			fw.write("surroundingWords:");
+			fw.write("interception1111:==:" + weightVector[0] + "\n");
 			for(Map.Entry<String, Integer> entry : surroundingWords.entrySet()) {
 				String key = entry.getKey();
+				Integer value = entry.getValue();
 				
-				fw.write(" " + key);
+				fw.write(key + ":==:" + weightVector[value.intValue()] + "\n");
 			}
 			
-			fw.write("\ncollocation: ");
 			for(Map.Entry<String, Integer> entry : collocation.entrySet()) {
 				String key = entry.getKey();
-				
-				fw.write("---" + key);
-			}
-			
-			fw.write("\nweights:");
-			for (int i = 0; i < weightVector.length; i++) {
-				fw.write(" ");
-				Double weight = weightVector[i];
-				fw.write(weight.toString());
+				Integer value = entry.getValue();
+
+				fw.write(key + ":==:" + weightVector[value.intValue()] + "\n");
 			}
 		 
+			if (weightVector.length != surroundingWords.size() + collocation.size() + 1) {
+				System.out.println("why?!");
+			}
+
 			fw.close();
 			
 		} catch (IOException e) {
@@ -455,11 +474,11 @@ public class sctrain {
 	private static sctrain initSctrain(String[] args) {
 		String inputFormat = "Input format: java sctrain word1 word2 train_file model_file";
 
-		if (args.length > NUM_OF_ARGUMENTS) {
+		if (args.length < NUM_OF_ARGUMENTS) {
 			System.out.println("Error: not enough arguments");
 			System.out.println(inputFormat);
 			System.exit(-1);
-		} else if (args.length < NUM_OF_ARGUMENTS) {
+		} else if (args.length > NUM_OF_ARGUMENTS) {
 			System.out.println("Error: too many arguments");
 			System.out.println(inputFormat);
 			System.exit(-1);
