@@ -4,6 +4,7 @@
 * [Introduction](README.md#introduction)
 * [Method Used](README.md#method-used)
 * [Feature Used](README.md#feature-used)
+* [Structure](README.md#structure)
  
 ### Introduction 
 * In this  assignment,  I am using  Java to write  a program  to perform  context-sensitive  spelling 
@@ -26,7 +27,8 @@ and  C 1,1   , C −1,−1  are also tested because they  are also believed  to 
 * Stop words filtering  for collocation  feature  does not produce a good result  as suggested 
 by Hassel  (1990) and thus  is not used. 
 
-### Structure:  In this  assignment,  sctrain.java,  sctest.java  and Evaluation.java  are written.   
+### Structure:  
+In this  assignment,  sctrain.java,  sctest.java  and Evaluation.java  are written.   
 * sctrain.java:  
   * It is used to train  the model  of the confusing  words. To run it, you can use 
   * the following  command  in the ssh secure shell  (unix  system): 
