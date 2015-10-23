@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Vector;
+import java.util.regex.Pattern;
+
 
 public class sctest {
 	private static final int NUM_OF_ARGUMENTS = 5;
@@ -26,13 +28,20 @@ public class sctest {
 	
 	private static final String CONFUSION_START = ">>";
 	private static final String CONFUSION_END = "<<";
-	private static final int COLLOCATION_LENGTH = 3;
+	private static final int COLLOCATION_LENGTH_BEFORE = 2;
+    private static final int COLLOCATION_LENGTH_AFTER = 2;
 	
 	private static final String COMMAND_SEPARATOR = ":==:";
 	private static final String COMMAND_WEIGHTS = "weights";
+
+	private static String[] STOP_WORDS = null;
+	private static final String STOP_WORDS_FILE = "stopwd.txt";
+	private static final String REGEX_PUNCTUATION = "\\p{Punct}";
+
 	
 	public sctest(String word1, String word2, String testFile,
 			String modelFile, String answerFile) {
+		readStopWordsFile(STOP_WORDS_FILE);
 		_word1 = word1;
 		_word2 = word2;
 		_testFile = testFile;
@@ -43,6 +52,16 @@ public class sctest {
 		initializeAnswerFile(_answerFile);
 	}
 	
+	private boolean isStopWord(String word) {
+		word = word.trim();
+		for (String stopWord : STOP_WORDS) {
+			if (stopWord.equals(word)) {
+				return true;
+			}	
+		}
+		return false;
+	}
+
 	private void initializeAnswerFile(String answerFile) {
 		writeToFile(answerFile, false, "");
 	}
@@ -116,7 +135,22 @@ public class sctest {
 		return probability >= 0.5;
 	}
 	
+    private String[] removeStopWords(String[] words) {
+        Vector <String> temp = new Vector <String>();
+        for (int i = 0; i < words.length; i++) {
+            if (!words[i].isEmpty() && !isStopWord(words[i])) {
+                temp.add(words[i]);
+            }
+        }
+        words = new String[temp.size()];
+        for (int i = 0; i < words.length; i++) {
+            words[i] = temp.get(i);
+        }
+        return words;
+    }
+    
 	private int[] computeFeatureVector(String[] words) {
+        //words = removeStopWords(words);
 		int[] featureVector = new int[_weightVectors.length];
 		Arrays.fill(featureVector, 0);
 		featureVector[0] = 1;
@@ -150,8 +184,9 @@ public class sctest {
         StringBuilder sb = new StringBuilder();
         sb.insert(0, CONFUSION_START);
 		for (int j = confuseIndexStart - 1; 
-             j >= Math.max(confuseIndexStart - 1 - COLLOCATION_LENGTH, 1); j--) {
+             j > Math.max(confuseIndexStart - 1 - COLLOCATION_LENGTH_BEFORE, 1); j--) {
 			String word = words[j].trim();
+
 			sb.insert(0, " ");
 
 			sb.insert(0, word);
@@ -169,8 +204,9 @@ public class sctest {
         StringBuffer collacationWordBuffer = new StringBuffer();
         collacationWordBuffer.append(CONFUSION_END);
 		for (int j = confuseIndexEnd + 1; 
-             j <= Math.min(confuseIndexEnd + 1 + COLLOCATION_LENGTH, words.length - 1); j++) {
+             j < Math.min(confuseIndexEnd + 1 + COLLOCATION_LENGTH_AFTER, words.length - 1); j++) {
 			String word = words[j].trim();
+			
 			collacationWordBuffer.append(" ");
 			collacationWordBuffer.append(word);
 			String collocationWord = collacationWordBuffer.toString().trim();
@@ -183,6 +219,30 @@ public class sctest {
 		}
 
 		return featureVector;
+	}
+
+	private boolean readStopWordsFile(String trainFile) {
+		try {
+			File file = new File(trainFile);
+		    BufferedReader br = new BufferedReader(new FileReader(file));
+		    Vector <String> stopWords = new Vector<String>();
+		    for(String line; (line = br.readLine()) != null; ) {
+		        // process the line.
+		        line = line.trim().toLowerCase();
+		        stopWords.add(line);
+		    }
+		    br.close();
+
+		    STOP_WORDS = new String[stopWords.size()];
+		    for (int i = 0; i < stopWords.size(); i++) {
+		    	STOP_WORDS[i] = stopWords.get(i);
+		    }
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+
+		return true;
 	}
 
 	private void retrieveDataFromModelFile(String fileName) {

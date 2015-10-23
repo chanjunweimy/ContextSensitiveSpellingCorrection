@@ -16,8 +16,6 @@ public class sctrain {
 	private static final int INDEX_MODEL_FILE = 3;
 	private static final int NUM_OF_ARGUMENTS = 4;
 
-
-	//reference: https://javaextreme.wordpress.com/category/java-j2se/java-string/remove-stop-words-from-a-string/
 	private static String[] STOP_WORDS = null;
 	private static final String STOP_WORDS_FILE = "stopwd.txt";
 
@@ -25,10 +23,12 @@ public class sctrain {
 
 	private static final String CONFUSION_START = ">>";
 	private static final String CONFUSION_END = "<<";
-	private static final int COLLOCATION_LENGTH = 3;
+	private static final int COLLOCATION_LENGTH_BEFORE = 2;
+    private static final int COLLOCATION_LENGTH_AFTER = 2;
 
-	private static final double LEARNING_RATE = 0.02;
-	private static final double GRADIENT_TRESHOLD = 0.01;
+
+	private static final double LEARNING_RATE = 0.05;
+	private static final double GRADIENT_TRESHOLD = 0.0001;
 	private static final double INITIAL_WEIGHT = 0.01;
 
 	private String _word1 = null;
@@ -106,7 +106,9 @@ public class sctrain {
 		        Vector<String> vector = new Vector<String>();
                 for (int i = 0; i < lineTokens.length; i++) {
                     lineTokens[i] = lineTokens[i].toLowerCase().trim();
-                    if (!lineTokens[i].isEmpty()) {
+                    if (!lineTokens[i].isEmpty() 
+                    //&& !isStopWord(lineTokens[i])
+                    ) {
                     	vector.add(lineTokens[i]);	
                     }
                 }
@@ -153,6 +155,15 @@ public class sctrain {
 		return isSuccess;
 	}
 
+    boolean isDouble(String str) {
+        try {
+            Double.parseDouble(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+    
 	private boolean isStopWord(String word) {
 		word = word.trim();
 		for (String stopWord : STOP_WORDS) {
@@ -184,7 +195,9 @@ public class sctrain {
 					continue;
 				} else if (isStopWord(word)) {
 					continue;
-				} else if (_surroundingWordsFeature.containsKey(word)) {
+                } else if (isDouble(word)){
+                    continue;
+                } else if (_surroundingWordsFeature.containsKey(word)) {
 					continue;
 				} else {
 					_surroundingWordsFeature.put(word, index);
@@ -221,8 +234,9 @@ public class sctrain {
             StringBuilder sb = new StringBuilder();
             sb.insert(0, CONFUSION_START);
 			for (int i = confussionWordIndex - 1; 
-                 i >= Math.max(confussionWordIndex - 1 - COLLOCATION_LENGTH, 1); i--) {
+                 i > Math.max(confussionWordIndex - 1 - COLLOCATION_LENGTH_BEFORE, 1); i--) {
 				String word = dataset.get(i).trim();
+
 				sb.insert(0, " ");
                 sb.insert(0, word);
 				String collocationWord = sb.toString();
@@ -235,8 +249,9 @@ public class sctrain {
 			StringBuffer collacationWordBuffer = new StringBuffer();
 			collacationWordBuffer.append(CONFUSION_END);
 			for (int i = confussionWordIndex + 3; 
-                 i <= Math.min(confussionWordIndex + 3 + COLLOCATION_LENGTH, dataset.size() - 1); i++) {
+                 i < Math.min(confussionWordIndex + 3 + COLLOCATION_LENGTH_AFTER, dataset.size() - 1); i++) {
 				String word = dataset.get(i).trim();
+				
 				collacationWordBuffer.append(" ");
 				collacationWordBuffer.append(word);
 				String collocationWord = collacationWordBuffer.toString();
@@ -288,7 +303,7 @@ public class sctrain {
             StringBuilder sb = new StringBuilder();
             sb.insert(0, CONFUSION_START);
 			for (int j = confuseIndexStart - 1; 
-                 j >= Math.max(confuseIndexStart - 1 - COLLOCATION_LENGTH, 1); j--) {
+                 j >= Math.max(confuseIndexStart - 1 - COLLOCATION_LENGTH_BEFORE, 1); j--) {
 				String word = dataset.get(j).trim();
 				sb.insert(0, " ");
 				sb.insert(0, word);
@@ -302,7 +317,7 @@ public class sctrain {
             StringBuffer collacationWordBuffer = new StringBuffer();
             collacationWordBuffer.append(CONFUSION_END);
 			for (int j = confuseIndexEnd + 1; 
-                 j <= Math.min(confuseIndexEnd + 1 + COLLOCATION_LENGTH, dataset.size() - 1); j++) {
+                 j <= Math.min(confuseIndexEnd + 1 + COLLOCATION_LENGTH_AFTER, dataset.size() - 1); j++) {
 				String word = dataset.get(j).trim();
 				collacationWordBuffer.append(" ");
 				collacationWordBuffer.append(word);
@@ -311,15 +326,23 @@ public class sctrain {
 					Integer index = _collocationsFeature.get(collocationWord);
 					_featureVectors[i][index.intValue()] = 1;
 				} else {
-					System.out.println(collocationWord);
+					//System.out.println(collocationWord);
 				}
 			}
 
 		}
 	}
 
+    private double calculateInnerProductOfWeightAndFeature(int indexOfDataSet, double[] weightVector) {
+        double innerProductOfWeightAndFeature = 0.0;
+		for (int i = 0; i < weightVector.length; i++) {
+			innerProductOfWeightAndFeature -= weightVector[i] * _featureVectors[indexOfDataSet][i];
+		}
+        return innerProductOfWeightAndFeature;
+    }
+    
 	private double derivativeFunction(int indexOfDataSet, int indexOfFeature, 
-			                          double[] weightVector) {
+			                          double[] weightVector, double innerProductOfWeightAndFeature) {
 		/**
 		 *	xi * (y - z), z = 1/(1+e^(-w x))
 		 */
@@ -327,12 +350,7 @@ public class sctrain {
 		int xi = _featureVectors[indexOfDataSet][indexOfFeature];
 		int y = _outcome[indexOfDataSet];
 
-		double innerProductOfWeightAndFeature = 0.0;
-		for (int i = 0; i < weightVector.length; i++) {
-			innerProductOfWeightAndFeature += weightVector[i] * _featureVectors[indexOfDataSet][i];
-		}
-
-		double z = Math.pow(Math.E, innerProductOfWeightAndFeature * -1);
+		double z = Math.pow(Math.E, innerProductOfWeightAndFeature);
 		z += 1;
 		z = 1 / z;
         
@@ -348,13 +366,19 @@ public class sctrain {
 		int dataSetSize = _datasets.size();
 		int indexOfDataSet = 0;
 		while (true) {
-            System.out.println(indexOfDataSet);
+            if (indexOfDataSet % 100 == 0) {
+                System.out.println(indexOfDataSet);
+            }
 
 			boolean isEnded = true;
 
 			double[] gradients = new double[n];
+            
+            double innerProductOfWeightAndFeature = calculateInnerProductOfWeightAndFeature(indexOfDataSet, 
+                                                                                            _weightVectors);
+            
 			for (int i = 0; i < n; i++) {
-				gradients[i] = derivativeFunction(indexOfDataSet, i, _weightVectors);
+				gradients[i] = derivativeFunction(indexOfDataSet, i, _weightVectors, innerProductOfWeightAndFeature);
                 //System.out.println(gradients[i]);
 				if (Math.abs(gradients[i]) > GRADIENT_TRESHOLD) {
 					isEnded = false;
@@ -384,7 +408,10 @@ public class sctrain {
 			for (int i = 0; i < n; i++) {
 				gradients[i] = 0;
 				for (int j = 0; j < dataSetSize; j++) {
-					gradients[i] += derivativeFunction(j, i, _weightVectors);
+                    double innerProductOfWeightAndFeature = calculateInnerProductOfWeightAndFeature(j,
+                                                                                                    _weightVectors);
+
+					gradients[i] += derivativeFunction(j, i, _weightVectors, innerProductOfWeightAndFeature);
 				}
 				gradients[i] /= dataSetSize;
 				if (Math.abs(gradients[i]) > GRADIENT_TRESHOLD) {
