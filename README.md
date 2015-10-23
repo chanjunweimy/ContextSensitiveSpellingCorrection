@@ -1,4 +1,4 @@
-##### ContextSensitiveSpellingCorrection
+# ContextSensitiveSpellingCorrection
 
 ### Index
 * [Introduction](README.md#introduction)
