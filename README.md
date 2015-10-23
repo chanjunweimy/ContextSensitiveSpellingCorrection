@@ -1,4 +1,4 @@
-######### ContextSensitiveSpellingCorrection
+##### ContextSensitiveSpellingCorrection
 
 ### Index
 * [Introduction](README.md#introduction)
@@ -37,7 +37,7 @@ by Hassel  (1990) and thus  is not used.
 ** 0144  Hungary   joins   the  European   Union   in   May  2004  and  could   >> adopt << the euro 
 ** by 2008 . 
 ** The file  model_file  contains  the features  and weights  computed  from  the training  process, 
-** each line  i in the model  file  contains  of a line  in the format:    𝑓 𝑒 𝑎 𝑡𝑢𝑟𝑒 𝑖 ≔=: 𝑤 𝑒𝑖𝑔 ℎ𝑡  
+** each line  i in the model  file  contains  of a line  in the format: feature:==:weight
 ** For example:  big >>:==:-0.013325415928373883 
  
 * sctest.java:  
