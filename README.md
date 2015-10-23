@@ -28,35 +28,35 @@ by Hassel  (1990) and thus  is not used.
 
 ### Structure:  In this  assignment,  sctrain.java,  sctest.java  and Evaluation.java  are written.   
 * sctrain.java:  
-** It is used to train  the model  of the confusing  words. To run it, you can use 
-** the following  command  in the ssh secure shell  (unix  system): 
-** >> java sctrain  word1 word2 train_file  model_file 
-** Where word1 and word2 are the confusable  words, for example  adapt and adopt 
-** the file  train_file  is a file  containing  the  training  sentences,  the example  of training  sentences 
-** are stated below: 
-** 0144  Hungary   joins   the  European   Union   in   May  2004  and  could   >> adopt << the euro 
-** by 2008 . 
-** The file  model_file  contains  the features  and weights  computed  from  the training  process, 
-** each line  i in the model  file  contains  of a line  in the format: feature:==:weight
-** For example:  big >>:==:-0.013325415928373883 
+  * It is used to train  the model  of the confusing  words. To run it, you can use 
+  * the following  command  in the ssh secure shell  (unix  system): 
+  * >> java sctrain  word1 word2 train_file  model_file 
+  * Where word1 and word2 are the confusable  words, for example  adapt and adopt 
+  * the file  train_file  is a file  containing  the  training  sentences,  the example  of training  sentences 
+  * are stated below: 
+  * 0144  Hungary   joins   the  European   Union   in   May  2004  and  could   >> adopt << the euro 
+  * by 2008 . 
+  * The file  model_file  contains  the features  and weights  computed  from  the training  process, 
+  * each line  i in the model  file  contains  of a line  in the format: feature:==:weight
+  * For example:  big >>:==:-0.013325415928373883 
  
 * sctest.java:  
-** It is used to predicts  the confusing  words needed in the test files.  To run  it, 
-** you can use the following  command  in the ssh secure shell  (unix  system):   
-** >> java sctest word1 word2 test_file  model_file  actual_file 
-** Where word1, word2 are the confusing  words,  
-** test_file  has a similar  format  with  train_file  except that the confusing  word is not stated, for 
-** example: 
-** 0501  The decree allows  the government  to >> << unusual  political  , military  and tax 
-** measures  with  an aim  to restoring  order . 
-** model_file  is the model_file  trained  by sctrain 
-** For each test sentence  in test_file,  actual_file  contains  one line  indicating  the test sentence   id  
-** and  the  disambiguated   confusable   word  as  determined   by  the  logistic  regression 
-** classifier:   
-** 0501 adopt 
+  * It is used to predicts  the confusing  words needed in the test files.  To run  it, 
+  * you can use the following  command  in the ssh secure shell  (unix  system):   
+  * >> java sctest word1 word2 test_file  model_file  actual_file 
+  * Where word1, word2 are the confusing  words,  
+  * test_file  has a similar  format  with  train_file  except that the confusing  word is not stated, for 
+  * example: 
+  * 0501  The decree allows  the government  to >> << unusual  political  , military  and tax 
+  * measures  with  an aim  to restoring  order . 
+  * model_file  is the model_file  trained  by sctrain 
+  * For each test sentence  in test_file,  actual_file  contains  one line  indicating  the test sentence   id  
+  * and  the  disambiguated   confusable   word  as  determined   by  the  logistic  regression 
+  * classifier:   
+  * 0501 adopt 
 
 * Evaluation.java:  
-** is use to check the accuracy  of the  actual_file  generated  by the sctest, command: 
-** >> java Evaluation  answer_file  actual_file 
-** Where answer_file  is the correct answer expected by the program  and actual  file  is the actual 
-** answer generated  by sctest. It will  return  an accuracy  value. 
+  * is use to check the accuracy  of the  actual_file  generated  by the sctest, command: 
+  * >> java Evaluation  answer_file  actual_file 
+  * Where answer_file  is the correct answer expected by the program  and actual  file  is the actual 
+  * answer generated  by sctest. It will  return  an accuracy  value. 
